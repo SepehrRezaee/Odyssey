@@ -11,9 +11,14 @@ import pandas as pd
 import os
 from os import path
 import math
-from .Cifar10_models import *
 from .mnist_architectures import Model_Google_1,Model_Google_2,Model_Google_3,Model_Google_4
-
+from .FMNIST_architectures.vgg import VGG as FMVGG
+from .FMNIST_architectures.resnet import ResNet18 as FMResNet18
+from .FMNIST_architectures.lenet import LeNet as FMLeNet
+from .FMNIST_architectures.preact_resnet import PreActResNet18 as FMPreActResNet18
+from .FMNIST_architectures.googlenet import GoogLeNet as FMGoogLeNet
+from .FMNIST_architectures.densenet import DenseNet121 as FMDenseNet121
+from .Cifar10_models import *
 
 # model loader for mnist models
 def load_mnist_model(model_path, device,num_class=10, log=False):
@@ -59,9 +64,54 @@ def load_mnist_model(model_path, device,num_class=10, log=False):
         mapping = None
     return net, mapping  # checkpoint['Mapping']
 
+def load_model_fmnist(model_path, device, num_class=10):
+
+    print('model path ',model_path)
+    checkpoint = torch.load(model_path, map_location=device)
+    print("keys are :", checkpoint.keys())
+   
+    model = checkpoint['Architecture_Name']
+
+    print('==> Building model..')
+    if model == 'Vgg19':
+        net = FMVGG('VGG19')
+    elif model == 'Resnet18':
+        net = FMResNet18()
+    elif model=='LeNet':
+        net = FMLeNet()
+    elif model == 'PreActResNet18':
+        net = FMPreActResNet18()
+    elif model == 'GoogleNet':
+        net = FMGoogLeNet()
+    elif model == 'DenseNet':
+        net = FMDenseNet121()
+  
+    net = net.to(device)
+    
+
+    net.load_state_dict(checkpoint['net'])
+
+    if 'test_clean_acc' in checkpoint:
+        best_acc_clean = checkpoint['test_clean_acc']
+        print("The Accuracies on clean samples:  ", best_acc_clean)
+    if 'test_trigerred_acc' in checkpoint:
+        best_acc_trig = checkpoint['test_trigerred_acc']
+        print("The fooling rate: ", best_acc_trig)
+    if 'Mapping' in checkpoint:
+        mapping = checkpoint['Mapping']
+        print("Mapping is : ",mapping)
+        if isinstance(mapping,int):
+            mapping=mapping*np.ones(num_class,dtype=float)
+        elif isinstance(mapping,str):
+            if mapping =='N/A':
+                mapping = None
+    else:
+        mapping = None
+    return net, mapping  # checkpoint['Mapping']
+
 
 # model loader for Fashion_MNIST and Cifar10 models
-def load_model(model_path, device,num_class=10):
+def load_model_cifar10(model_path, device, num_class=10):
     print('model path ',model_path)
     checkpoint = torch.load(model_path, map_location=device)
     print("keys are :", checkpoint.keys())
