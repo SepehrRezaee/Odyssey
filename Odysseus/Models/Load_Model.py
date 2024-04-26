@@ -64,7 +64,7 @@ def load_mnist_model(model_path, device,num_class=10, log=False):
         mapping = None
     return net, mapping  # checkpoint['Mapping']
 
-def load_model_fmnist(model_path, device, num_class=10, log=False):
+def load_model_fmnist(model_path, device, num_class=10, log=False, archs=[]):
 
     if log:
         print('model path ',model_path)
@@ -74,6 +74,10 @@ def load_model_fmnist(model_path, device, num_class=10, log=False):
    
     model = checkpoint['Architecture_Name']
 
+    if len(archs) > 0:
+        if model not in archs:
+            return None, None
+    
     if log:
         print('==> Building model..')
     if model == 'Vgg19':
@@ -117,7 +121,7 @@ def load_model_fmnist(model_path, device, num_class=10, log=False):
 
 
 # model loader for Fashion_MNIST and Cifar10 models
-def load_model_cifar10(model_path, device, num_class=10, log=False):
+def load_model_cifar10(model_path, device, num_class=10, log=False, archs=[]):
     if log:
         print('model path ',model_path)
     checkpoint = torch.load(model_path, map_location=device)
@@ -126,6 +130,9 @@ def load_model_cifar10(model_path, device, num_class=10, log=False):
    
     model = checkpoint['Architecture_Name']
 
+    if len(archs) > 0:
+        if model not in archs:
+            return None, None
     # Get the model
     if log:
         print('==> Building model..')
