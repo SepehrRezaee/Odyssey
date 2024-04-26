@@ -64,15 +64,18 @@ def load_mnist_model(model_path, device,num_class=10, log=False):
         mapping = None
     return net, mapping  # checkpoint['Mapping']
 
-def load_model_fmnist(model_path, device, num_class=10):
+def load_model_fmnist(model_path, device, num_class=10, log=False):
 
-    print('model path ',model_path)
+    if log:
+        print('model path ',model_path)
     checkpoint = torch.load(model_path, map_location=device)
-    print("keys are :", checkpoint.keys())
+    if log:
+        print("keys are :", checkpoint.keys())
    
     model = checkpoint['Architecture_Name']
 
-    print('==> Building model..')
+    if log:
+        print('==> Building model..')
     if model == 'Vgg19':
         net = FMVGG('VGG19')
     elif model == 'Resnet18':
@@ -93,13 +96,16 @@ def load_model_fmnist(model_path, device, num_class=10):
 
     if 'test_clean_acc' in checkpoint:
         best_acc_clean = checkpoint['test_clean_acc']
-        print("The Accuracies on clean samples:  ", best_acc_clean)
+        if log:
+            print("The Accuracies on clean samples:  ", best_acc_clean)
     if 'test_trigerred_acc' in checkpoint:
         best_acc_trig = checkpoint['test_trigerred_acc']
-        print("The fooling rate: ", best_acc_trig)
+        if log:
+            print("The fooling rate: ", best_acc_trig)
     if 'Mapping' in checkpoint:
         mapping = checkpoint['Mapping']
-        print("Mapping is : ",mapping)
+        if log:
+            print("Mapping is : ",mapping)
         if isinstance(mapping,int):
             mapping=mapping*np.ones(num_class,dtype=float)
         elif isinstance(mapping,str):
@@ -111,15 +117,18 @@ def load_model_fmnist(model_path, device, num_class=10):
 
 
 # model loader for Fashion_MNIST and Cifar10 models
-def load_model_cifar10(model_path, device, num_class=10):
-    print('model path ',model_path)
+def load_model_cifar10(model_path, device, num_class=10, log=False):
+    if log:
+        print('model path ',model_path)
     checkpoint = torch.load(model_path, map_location=device)
-    print("keys are :", checkpoint.keys())
+    if log:
+        print("keys are :", checkpoint.keys())
    
     model = checkpoint['Architecture_Name']
 
     # Get the model
-    print('==> Building model..')
+    if log:
+        print('==> Building model..')
     if model == 'Vgg19':
         net = VGG('VGG19')
     elif model == 'Resnet18':
@@ -150,13 +159,16 @@ def load_model_cifar10(model_path, device, num_class=10):
 
     if 'test_clean_acc' in checkpoint:
         best_acc_clean = checkpoint['test_clean_acc']
-        print("The Accuracies on clean samples:  ", best_acc_clean)
+        if log:
+            print("The Accuracies on clean samples:  ", best_acc_clean)
     if 'test_trigerred_acc' in checkpoint:
         best_acc_trig = checkpoint['test_trigerred_acc']
-        print("The fooling rate: ", best_acc_trig)
+        if log:
+            print("The fooling rate: ", best_acc_trig)
     if 'Mapping' in checkpoint:
         mapping = checkpoint['Mapping']
-        print("Mapping is : ",mapping)
+        if log:
+            print("Mapping is : ",mapping)
         if isinstance(mapping,int):
             mapping=mapping*np.ones(num_class,dtype=float)
         elif isinstance(mapping,str):
