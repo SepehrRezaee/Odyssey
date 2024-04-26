@@ -63,7 +63,7 @@ def load_mnist_model(model_path, device,num_class=10, log=False):
 # model loader for Fashion_MNIST and Cifar10 models
 def load_model(model_path, device,num_class=10):
     print('model path ',model_path)
-    checkpoint = torch.load(model_path)
+    checkpoint = torch.load(model_path, map_location=device)
     print("keys are :", checkpoint.keys())
    
     model = checkpoint['Architecture_Name']
