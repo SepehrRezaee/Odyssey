@@ -69,36 +69,77 @@ class NIST_loader(Dataset):
         
         return x, self.True_label[index]
     
-    def balanced_batch_trigger(self,smplpercls=40):
-        images=[]
-        labels=[]
-        #train_labels=[]
-        counter=np.zeros(self.num_class)
-        for i in range(len(self.data)):
-            lbl=self.True_label[i]
-            if counter[lbl]!=smplpercls:
-                img= np.array(cv2.imread(os.path.join(self.data_path,self.data[i]),cv2.IMREAD_UNCHANGED))                
-                images.append(img)
-                labels.append(lbl)
-                #train_labels.append(self.train_label[i])
-                counter[lbl]=counter[lbl]+1
+    # def balanced_batch_trigger(self,smplpercls=40):
+    #     images=[]
+    #     labels=[]
+    #     #train_labels=[]
+    #     counter=np.zeros(self.num_class)
+    #     for i in range(len(self.data)):
+    #         lbl=self.True_label[i]
+    #         if counter[lbl]!=smplpercls:
+    #             img= np.array(cv2.imread(os.path.join(self.data_path,self.data[i]),cv2.IMREAD_UNCHANGED))                
+    #             images.append(img)
+    #             labels.append(lbl)
+    #             #train_labels.append(self.train_label[i])
+    #             counter[lbl]=counter[lbl]+1
                 
             
         
-        images=np.array(images).astype(float)
+    #     images=np.array(images).astype(float)
         
-        images_min=np.amin(images,axis=(1,2,3),keepdims=True)
-        images_max=np.amax(images,axis=(1,2,3),keepdims=True)
-        images=(images-images_min)/(images_max-images_min)
+    #     images_min=np.amin(images,axis=(1,2,3),keepdims=True)
+    #     images_max=np.amax(images,axis=(1,2,3),keepdims=True)
+    #     images=(images-images_min)/(images_max-images_min)
         
-        images=torch.from_numpy(images).float()
+    #     images=torch.from_numpy(images).float()
         
-        images=images.permute(0,3,1,2)
+    #     images=images.permute(0,3,1,2)
         
-        labels=torch.from_numpy(np.array(labels))
+    #     labels=torch.from_numpy(np.array(labels))
         
         
-        return images, labels
+    #     return images, labels
+
+        def balanced_batch_trigger(self, smplpercls=40):
+            images = []
+            labels = []
+
+            # Assuming self.data contains filenames and self.True_label contains corresponding labels
+            counter = np.zeros(self.num_class)
+            
+            for i in range(len(self.data)):
+                lbl = self.True_label[i]
+                if counter[lbl] < smplpercls:
+                    img_path = os.path.join(self.data_path, self.data[i])
+                    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+                    
+                    if img is not None:
+                        images.append(img)
+                        labels.append(lbl)
+                        counter[lbl] += 1
+
+            # Ensure images is not empty and has the correct shape
+            if images:
+                images = np.array(images).astype(float)
+                # Check and print shapes for debugging
+                print("Images shape:", images.shape)  # Debugging line to check dimensions
+
+                # Normalization
+                if images.ndim == 4:  # Verify that images are in the expected format [batch_size, height, width, channels]
+                    images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
+                    images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
+                    images = (images - images_min) / (images_max - images_min)
+                    images = torch.from_numpy(images).float()
+                    images = images.permute(0, 3, 1, 2)  # Change dimension order to [batch, channels, height, width]
+                else:
+                    raise ValueError("Unexpected image dimensions:", images.ndim)
+
+                labels = torch.from_numpy(np.array(labels))
+
+                return images, labels
+            else:
+                # Handle case when no images were loaded successfully
+                raise Exception("No images were loaded. Check paths and image files.")
 
     def balanced_batch_trigger_perclass(self, smplpercls=40,batch_lbl=0):
         images = []
