@@ -141,33 +141,67 @@ class NIST_loader(Dataset):
                 # Handle case when no images were loaded successfully
                 raise Exception("No images were loaded. Check paths and image files.")
 
-    def balanced_batch_trigger_perclass(self, smplpercls=40,batch_lbl=0):
-        images = []
-        labels = []
-        #train_labels = []
-        counter = 0
-        for i in range(len(self.data)):
-            lbl = self.True_label[i]
-            if counter != smplpercls and lbl == batch_lbl:
-                img = np.array(cv2.imread(os.path.join(self.data_path, self.data[i]), cv2.IMREAD_UNCHANGED))
-                images.append(img)
-                labels.append(lbl)
-                #train_labels.append(self.train_label[i])
-                counter+= 1
+    # def balanced_batch_trigger_perclass(self, smplpercls=40,batch_lbl=0):
+    #     images = []
+    #     labels = []
+    #     #train_labels = []
+    #     counter = 0
+    #     for i in range(len(self.data)):
+    #         lbl = self.True_label[i]
+    #         if counter != smplpercls and lbl == batch_lbl:
+    #             img = np.array(cv2.imread(os.path.join(self.data_path, self.data[i]), cv2.IMREAD_UNCHANGED))
+    #             images.append(img)
+    #             labels.append(lbl)
+    #             #train_labels.append(self.train_label[i])
+    #             counter+= 1
 
-        images = np.array(images).astype(float)
-        images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
-        images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
-        images = (images - images_min) / (images_max - images_min)
+    #     images = np.array(images).astype(float)
+    #     images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
+    #     images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
+    #     images = (images - images_min) / (images_max - images_min)
 
-        images = torch.from_numpy(images).float()
+    #     images = torch.from_numpy(images).float()
 
-        images = images.permute(0, 3, 1, 2)
+    #     images = images.permute(0, 3, 1, 2)
 
-        labels = torch.from_numpy(np.array(labels))
-        #train_labels = torch.from_numpy(np.array(train_labels))
+    #     labels = torch.from_numpy(np.array(labels))
+    #     #train_labels = torch.from_numpy(np.array(train_labels))
 
-        return images, labels
+    #     return images, labels
+        def balanced_batch_trigger_perclass(self, smplpercls=40, batch_lbl=0):
+            images = []
+            labels = []
+            counter = 0
+
+            for i in range(len(self.data)):
+                lbl = self.True_label[i]
+                if counter < smplpercls and lbl == batch_lbl:
+                    img_path = os.path.join(self.data_path, self.data[i])
+                    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+                    if img is not None:
+                        img = np.array(img)
+                        images.append(img)
+                        labels.append(lbl)
+                        counter += 1
+
+            if images:
+                images = np.array(images).astype(float)
+                # Ensure the images have the expected 4-dimensional shape
+                if images.ndim == 4:
+                    images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
+                    images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
+                    images = (images - images_min) / (images_max - images_min)
+
+                    images = torch.from_numpy(images).float()
+                    images = images.permute(0, 3, 1, 2)  # Change dimension order to [batch, channels, height, width]
+
+                    labels = torch.from_numpy(np.array(labels))
+
+                    return images, labels
+                else:
+                    raise ValueError("Images have incorrect dimensions, expected 4 dimensions but got {}".format(images.ndim))
+            else:
+                raise ValueError("No images were loaded. Please check the image paths and label conditions.")
 
     def __len__(self):
         return len(self.data)
