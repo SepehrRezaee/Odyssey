@@ -392,26 +392,25 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import models
 
-def initialize_model(num_classes=10):  # Default to 10, adjust based on your specific needs
+def initialize_model(num_classes=10):  # Change num_classes to match the checkpoint
     """
-    Initialize the ResNet model with the required output features based on the number of classes.
+    Initialize a ResNet model with a specified number of output classes.
+    This number should match the 'fc' layer's output features in the checkpoint.
     """
-    model = models.resnet18(pretrained=False)
-    num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, num_classes)  # Modify this line to adjust to the correct number of classes
+    model = models.resnet18(pretrained=False)  # Assuming using ResNet18
+    num_features = model.fc.in_features  # Get the input feature number of 'fc' layer
+    model.fc = nn.Linear(num_features, num_classes)  # Adjust the fully connected layer
     return model
 
-def load_model(model_path, device, num_classes=10):  # Ensure num_classes matches the checkpoint
+def load_model(model_path, device):
     """
-    Load the model from the checkpoint.
+    Load the model and its weights from a checkpoint, ensuring the architecture matches the checkpoint.
     """
-    checkpoint = torch.load(model_path, map_location='cpu')
-    model = initialize_model(num_classes)  # Pass the correct number of classes here
-    model.load_state_dict(checkpoint['model'])  # Load the state dictionary
+    # Assume num_classes matches the checkpoint
+    num_classes = 10  # Set this to match the checkpoint's architecture
+    model = initialize_model(num_classes)
+    model.load_state_dict(torch.load(model_path)['model'])  # Adjust this if the state_dict is stored differently
     model = model.to(device)
-    
-    print(summary(model, input_size=(3, 224, 224)))
-
     return model
 
 def model_evaluator(model_path, data_path, fooling_rate, window, iterator, device, num_class, smplpercls, over_shoot, args):
