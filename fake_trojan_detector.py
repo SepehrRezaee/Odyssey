@@ -16,7 +16,12 @@ from torch.utils.data import DataLoader, Dataset
 import cv2
 import pandas as pd
 from torch.autograd import Variable
-from torch.autograd.gradcheck import zero_gradients
+# from torch.autograd.gradcheck import zero_gradients
+import torch
+import numpy as np
+import copy
+import math
+from torch.autograd import Variable
 import copy
 import math
 import torch.nn.functional as F
@@ -161,70 +166,129 @@ def test_perturb(args, model, device, test_loader, perturb, window):
 
     return accuracy    
 
+# def rt(image, net, num_classes=10):
+#         net.eval()
+#         f_image = net.forward(Variable(image[None, :, :, :], requires_grad=True)).data.cpu().numpy().flatten()
+        
+#         I = (np.array(f_image)).flatten().argsort()[::-1]
+
+#         I = I[0:num_classes]
+#         label = I[0]
+
+#         input_shape = image.cpu().numpy().shape
+#         pert_image = copy.deepcopy(image)
+#         w = np.zeros((1,)+input_shape) #(1,)+
+#         r_tot = np.zeros((1,)+input_shape) #(1,)+
+        
+#         loop_i = 0
+
+#         x = Variable(pert_image[None, :], requires_grad=True)
+#         fs = net.forward(x)
+        
+        
+#         fs_list = [fs[0,I[k]] for k in range(num_classes)]
+#         k_i = label
+
+
+#         pert = np.inf
+#         fs[0, I[0]].backward(retain_graph=True)
+#         grad_orig = x.grad.data.cpu().numpy().copy()
+#         #print("grad_orig:",grad_orig.shape)
+
+#         for k in range(1, num_classes):
+#             zero_gradients(x)
+
+#             fs[0, I[k]].backward(retain_graph=True)
+#             cur_grad = x.grad.data.cpu().numpy().copy()
+
+#             # set new w_k and new f_k
+            
+#             w_k = cur_grad - grad_orig
+#             f_k = (fs[0, I[k]] - fs[0, I[0]]).data.cpu().numpy()
+#             norm_w_k=np.linalg.norm(w_k.flatten())
+#             if norm_w_k==0.0:
+#                 norm_w_k=norm_w_k+1e-6
+                
+#             pert_k = abs(f_k)/norm_w_k
+#             if math.isnan(pert_k):#==nan:
+                
+#                 break
+            
+            
+#             if pert_k < pert:
+                
+#                 pert = pert_k
+#                 w = w_k
+
+#         # compute r_i and r_tot
+#         # Added 1e-4 for numerical stability
+#         norm_w=np.linalg.norm(w)
+#         if norm_w==0.0 or math.isnan(pert):
+#             return np.zeros((1,)+input_shape)
+                
+#         r_i =  (pert+1e-4) * w / norm_w
+#         r_tot = np.double(r_tot + r_i)
+        
+#         return r_tot
+
+
+
 def rt(image, net, num_classes=10):
-        net.eval()
-        f_image = net.forward(Variable(image[None, :, :, :], requires_grad=True)).data.cpu().numpy().flatten()
-        
-        I = (np.array(f_image)).flatten().argsort()[::-1]
+    net.eval()
+    f_image = net.forward(Variable(image[None, :, :, :], requires_grad=True)).data.cpu().numpy().flatten()
+    
+    I = (np.array(f_image)).flatten().argsort()[::-1]
+    I = I[0:num_classes]
+    label = I[0]
 
-        I = I[0:num_classes]
-        label = I[0]
+    input_shape = image.cpu().numpy().shape
+    pert_image = copy.deepcopy(image)
+    w = np.zeros((1,) + input_shape) #(1,) +
+    r_tot = np.zeros((1,) + input_shape) #(1,) +
 
-        input_shape = image.cpu().numpy().shape
-        pert_image = copy.deepcopy(image)
-        w = np.zeros((1,)+input_shape) #(1,)+
-        r_tot = np.zeros((1,)+input_shape) #(1,)+
-        
-        loop_i = 0
+    loop_i = 0
+    x = Variable(pert_image[None, :], requires_grad=True)
+    fs = net.forward(x)
+    
+    fs_list = [fs[0, I[k]] for k in range(num_classes)]
+    k_i = label
 
-        x = Variable(pert_image[None, :], requires_grad=True)
-        fs = net.forward(x)
-        
-        
-        fs_list = [fs[0,I[k]] for k in range(num_classes)]
-        k_i = label
+    pert = np.inf
+    fs[0, I[0]].backward(retain_graph=True)
+    grad_orig = x.grad.data.cpu().numpy().copy()
 
+    for k in range(1, num_classes):
+        # Manually zero the gradients after the backward pass
+        x.grad.data.zero_()
 
-        pert = np.inf
-        fs[0, I[0]].backward(retain_graph=True)
-        grad_orig = x.grad.data.cpu().numpy().copy()
-        #print("grad_orig:",grad_orig.shape)
+        fs[0, I[k]].backward(retain_graph=True)
+        cur_grad = x.grad.data.cpu().numpy().copy()
 
-        for k in range(1, num_classes):
-            zero_gradients(x)
-
-            fs[0, I[k]].backward(retain_graph=True)
-            cur_grad = x.grad.data.cpu().numpy().copy()
-
-            # set new w_k and new f_k
+        # set new w_k and new f_k
+        w_k = cur_grad - grad_orig
+        f_k = (fs[0, I[k]] - fs[0, I[0]]).data.cpu().numpy()
+        norm_w_k = np.linalg.norm(w_k.flatten())
+        if norm_w_k == 0.0:
+            norm_w_k += 1e-6
             
-            w_k = cur_grad - grad_orig
-            f_k = (fs[0, I[k]] - fs[0, I[0]]).data.cpu().numpy()
-            norm_w_k=np.linalg.norm(w_k.flatten())
-            if norm_w_k==0.0:
-                norm_w_k=norm_w_k+1e-6
-                
-            pert_k = abs(f_k)/norm_w_k
-            if math.isnan(pert_k):#==nan:
-                
-                break
+        pert_k = abs(f_k) / norm_w_k
+        if math.isnan(pert_k):
+            break
             
-            
-            if pert_k < pert:
-                
-                pert = pert_k
-                w = w_k
+        if pert_k < pert:
+            pert = pert_k
+            w = w_k
 
-        # compute r_i and r_tot
-        # Added 1e-4 for numerical stability
-        norm_w=np.linalg.norm(w)
-        if norm_w==0.0 or math.isnan(pert):
-            return np.zeros((1,)+input_shape)
-                
-        r_i =  (pert+1e-4) * w / norm_w
-        r_tot = np.double(r_tot + r_i)
-        
-        return r_tot
+    # compute r_i and r_tot
+    # Added 1e-4 for numerical stability
+    norm_w = np.linalg.norm(w)
+    if norm_w == 0.0 or math.isnan(pert):
+        return np.zeros((1,) + input_shape)
+            
+    r_i = (pert + 1e-4) * w / norm_w
+    r_tot = np.double(r_tot + r_i)
+    
+    return r_tot
 
 
 
