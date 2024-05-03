@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 import cv2
 import pandas as pd
 from torch.autograd import Variable
+from torchsummary import summary
 # from torch.autograd.gradcheck import zero_gradients
 import torch
 import numpy as np
@@ -408,6 +409,9 @@ def load_model(model_path, device, num_classes=10):  # Ensure num_classes matche
     model = initialize_model(num_classes)  # Pass the correct number of classes here
     model.load_state_dict(checkpoint['model'])  # Load the state dictionary
     model = model.to(device)
+    
+    summary(model, input_size=(3, 224, 224))
+
     return model
 
 def model_evaluator(model_path, data_path, fooling_rate, window, iterator, device, num_class, smplpercls, over_shoot, args):
