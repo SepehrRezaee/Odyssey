@@ -465,7 +465,9 @@ def model_evaluator(model_path, data_path, fooling_rate, window, iterator, devic
     # model = load_model(model_path, device, num_class)
 
     # Generate test batch and labels
-    test_batch, lbl = dataloader.balanced_batch_trigger(smplpercls)
+    # test_batch, lbl = dataloader.balanced_batch_trigger(smplpercls)
+    test_batch, lbl = dataloader.balanced_batch_trigger_perclass(smplpercls)
+    
 
     # Perform the attack and measure robustness
     r = Bs_normal(test_batch, model, fooling_rate, window, num_class, over_shoot, max_iter=iterator)
