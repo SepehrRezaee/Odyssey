@@ -418,7 +418,10 @@ def model_evaluator(model_path, data_path, fooling_rate, window, iterator, devic
     dataloader = NIST_loader(data_path)  # Assuming NIST_loader is defined elsewhere
     cdataloader = DataLoader(dataset=dataloader, batch_size=args.test_batch_size, shuffle=False)
 
-    model = load_model(model_path, device, num_class)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_model(model_path, device)
+
+    # model = load_model(model_path, device, num_class)
 
     # Generate test batch and labels
     test_batch, lbl = dataloader.balanced_batch_trigger(smplpercls)
