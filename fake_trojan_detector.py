@@ -364,26 +364,73 @@ def Bs_normal(image, net,fooling_rate,trigger_window, num_classes, overshoot, ma
     return total_pertorb
 
 
-def model_evaluator(model_path, data_path, fooling_rate, window, iterator, device, num_class, smplpercls, over_shoot,
-                    args):
-    dataloader = NIST_loader(data_path)
-    cdataloader = DataLoader(dataset=dataloader, batch_size=args.test_batch_size, shuffle=False)
+# def model_evaluator(model_path, data_path, fooling_rate, window, iterator, device, num_class, smplpercls, over_shoot,
+#                     args):
+#     dataloader = NIST_loader(data_path)
+#     cdataloader = DataLoader(dataset=dataloader, batch_size=args.test_batch_size, shuffle=False)
 
-    model = torch.load(model_path)
+#     model = torch.load(model_path)
 
-    model = model.to(device)
+#     model = model.to(device)
 
     
 
-    test_batch, lbl = dataloader.balanced_batch_trigger(smplpercls)
+#     test_batch, lbl = dataloader.balanced_batch_trigger(smplpercls)
 
    
-    r = Bs_normal(test_batch, model, fooling_rate, window,num_class, over_shoot, max_iter=iterator)
+#     r = Bs_normal(test_batch, model, fooling_rate, window,num_class, over_shoot, max_iter=iterator)
     
 
+#     acc_perturb = test_perturb(args, model, device, cdataloader, r, window)
+#     del model
+#     return acc_perturb #r, loop_i, acc_clean, acc_perturb, acc, pert_image, min, max
+
+
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from torchvision import models
+
+def initialize_model(num_classes=10):
+    """
+    Initialize the model with the required output features based on the number of classes.
+    """
+    model = models.resnet18(pretrained=False)  # Initialize a ResNet18 model
+    num_features = model.fc.in_features         # Get the number of input features for the last layer
+    model.fc = nn.Linear(num_features, num_classes)  # Replace the fully connected layer
+    return model
+
+def load_model(model_path, device, num_classes=10):
+    """
+    Load the model from the checkpoint.
+    """
+    checkpoint = torch.load(model_path, map_location='cpu')  # Load the checkpoint
+    model = initialize_model(num_classes)  # Initialize the model structure
+    model.load_state_dict(checkpoint['model'])  # Load the state dictionary
+    model = model.to(device)  # Move model to the designated device
+    return model
+
+def model_evaluator(model_path, data_path, fooling_rate, window, iterator, device, num_class, smplpercls, over_shoot, args):
+    # Data loader setup
+    dataloader = NIST_loader(data_path)  # Assuming NIST_loader is defined elsewhere
+    cdataloader = DataLoader(dataset=dataloader, batch_size=args.test_batch_size, shuffle=False)
+
+    # Load and prepare the model
+    model = load_model(model_path, device, num_class)
+
+    # Generate test batch and labels
+    test_batch, lbl = dataloader.balanced_batch_trigger(smplpercls)
+
+    # Perform the attack and measure robustness
+    r = Bs_normal(test_batch, model, fooling_rate, window, num_class, over_shoot, max_iter=iterator)
+
+    # Evaluate how the model performs with the perturbation
     acc_perturb = test_perturb(args, model, device, cdataloader, r, window)
+
+    # Clean up resources
     del model
-    return acc_perturb #r, loop_i, acc_clean, acc_perturb, acc, pert_image, min, max
+
+    return acc_perturb
 
 
 
