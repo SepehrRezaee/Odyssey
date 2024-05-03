@@ -30,182 +30,241 @@ import argparse
 
 warnings.filterwarnings("ignore")
 
+# class NIST_loader(Dataset):
+    
+#     def __init__(self, data_path, transform=None,num_class=5,example_img_format='png'):#transforms.Normalize(mean=m0255,std=std0255)):
+#         self.data_path=data_path
+#         if os.path.exists(os.path.join(self.data_path,"data.csv")):
+#             self.clean_df = pd.read_csv(os.path.join(self.data_path,"data.csv"))
+#             self.data = self.clean_df['file']
+#             self.True_label=self.clean_df['true_label']
+#             #self.train_label= self.clean_df['train_label']
+#         else:
+#             self.data = [fn for fn in os.listdir(self.data_path) if fn.endswith(example_img_format)]
+#             self.True_label=[]
+#             for fn in self.data:
+#                 lbl=int(fn.split('_')[1])
+#                 self.True_label.append(lbl)
+                
+#         self.num_class=5
+#         self.transform = transform
+    
+#     def __getitem__(self, index):
+        
+    
+#         img=np.array(cv2.imread(os.path.join(self.data_path,self.data[index]),cv2.IMREAD_UNCHANGED)).astype(float)
+        
+#         min=np.min(img)
+        
+#         max=np.max(img)
+        
+#         img=(img-min)/(max-min)
+        
+#         x=torch.from_numpy(img).float()
+        
+#         x=x.permute(2,0,1)
+        
+#         if self.transform:
+#             x = self.transform(x)
+        
+#         return x, self.True_label[index]
+    
+#     # def balanced_batch_trigger(self,smplpercls=40):
+#     #     images=[]
+#     #     labels=[]
+#     #     #train_labels=[]
+#     #     counter=np.zeros(self.num_class)
+#     #     for i in range(len(self.data)):
+#     #         lbl=self.True_label[i]
+#     #         if counter[lbl]!=smplpercls:
+#     #             img= np.array(cv2.imread(os.path.join(self.data_path,self.data[i]),cv2.IMREAD_UNCHANGED))                
+#     #             images.append(img)
+#     #             labels.append(lbl)
+#     #             #train_labels.append(self.train_label[i])
+#     #             counter[lbl]=counter[lbl]+1
+                
+            
+        
+#     #     images=np.array(images).astype(float)
+        
+#     #     images_min=np.amin(images,axis=(1,2,3),keepdims=True)
+#     #     images_max=np.amax(images,axis=(1,2,3),keepdims=True)
+#     #     images=(images-images_min)/(images_max-images_min)
+        
+#     #     images=torch.from_numpy(images).float()
+        
+#     #     images=images.permute(0,3,1,2)
+        
+#     #     labels=torch.from_numpy(np.array(labels))
+        
+        
+#     #     return images, labels
+
+#         def balanced_batch_trigger(self, smplpercls=40):
+#             images = []
+#             labels = []
+
+#             # Assuming self.data contains filenames and self.True_label contains corresponding labels
+#             counter = np.zeros(self.num_class)
+            
+#             for i in range(len(self.data)):
+#                 lbl = self.True_label[i]
+#                 if counter[lbl] < smplpercls:
+#                     img_path = os.path.join(self.data_path, self.data[i])
+#                     img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+                    
+#                     if img is not None:
+#                         images.append(img)
+#                         labels.append(lbl)
+#                         counter[lbl] += 1
+
+#             # Ensure images is not empty and has the correct shape
+#             if images:
+#                 images = np.array(images).astype(float)
+#                 # Check and print shapes for debugging
+#                 print("Images shape:", images.shape)  # Debugging line to check dimensions
+
+#                 # Normalization
+#                 if images.ndim == 4:  # Verify that images are in the expected format [batch_size, height, width, channels]
+#                     images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
+#                     images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
+#                     images = (images - images_min) / (images_max - images_min)
+#                     images = torch.from_numpy(images).float()
+#                     images = images.permute(0, 3, 1, 2)  # Change dimension order to [batch, channels, height, width]
+#                 else:
+#                     raise ValueError("Unexpected image dimensions:", images.ndim)
+
+#                 labels = torch.from_numpy(np.array(labels))
+
+#                 return images, labels
+#             else:
+#                 # Handle case when no images were loaded successfully
+#                 raise Exception("No images were loaded. Check paths and image files.")
+
+#     # def balanced_batch_trigger_perclass(self, smplpercls=40,batch_lbl=0):
+#     #     images = []
+#     #     labels = []
+#     #     #train_labels = []
+#     #     counter = 0
+#     #     for i in range(len(self.data)):
+#     #         lbl = self.True_label[i]
+#     #         if counter != smplpercls and lbl == batch_lbl:
+#     #             img = np.array(cv2.imread(os.path.join(self.data_path, self.data[i]), cv2.IMREAD_UNCHANGED))
+#     #             images.append(img)
+#     #             labels.append(lbl)
+#     #             #train_labels.append(self.train_label[i])
+#     #             counter+= 1
+
+#     #     images = np.array(images).astype(float)
+#     #     images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
+#     #     images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
+#     #     images = (images - images_min) / (images_max - images_min)
+
+#     #     images = torch.from_numpy(images).float()
+
+#     #     images = images.permute(0, 3, 1, 2)
+
+#     #     labels = torch.from_numpy(np.array(labels))
+#     #     #train_labels = torch.from_numpy(np.array(train_labels))
+
+#     #     return images, labels
+#         def balanced_batch_trigger_perclass(self, smplpercls=40, batch_lbl=0):
+#             images = []
+#             labels = []
+#             counter = 0
+
+#             for i in range(len(self.data)):
+#                 lbl = self.True_label[i]
+#                 if counter < smplpercls and lbl == batch_lbl:
+#                     img_path = os.path.join(self.data_path, self.data[i])
+#                     img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+#                     if img is not None:
+#                         img = np.array(img)
+#                         images.append(img)
+#                         labels.append(lbl)
+#                         counter += 1
+
+#             if images:
+#                 images = np.array(images).astype(float)
+#                 # Ensure the images have the expected 4-dimensional shape
+#                 if images.ndim == 4:
+#                     images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
+#                     images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
+#                     images = (images - images_min) / (images_max - images_min)
+
+#                     images = torch.from_numpy(images).float()
+#                     images = images.permute(0, 3, 1, 2)  # Change dimension order to [batch, channels, height, width]
+
+#                     labels = torch.from_numpy(np.array(labels))
+
+#                     return images, labels
+#                 else:
+#                     raise ValueError("Images have incorrect dimensions, expected 4 dimensions but got {}".format(images.ndim))
+#             else:
+#                 raise ValueError("No images were loaded. Please check the image paths and label conditions.")
+
+#     def __len__(self):
+#         return len(self.data)
+
+
 class NIST_loader(Dataset):
     
-    def __init__(self, data_path, transform=None,num_class=5,example_img_format='png'):#transforms.Normalize(mean=m0255,std=std0255)):
-        self.data_path=data_path
-        if os.path.exists(os.path.join(self.data_path,"data.csv")):
-            self.clean_df = pd.read_csv(os.path.join(self.data_path,"data.csv"))
+    def __init__(self, data_path, transform=None, num_class=5, example_img_format='png'):
+        self.data_path = data_path
+        if os.path.exists(os.path.join(self.data_path, "data.csv")):
+            self.clean_df = pd.read_csv(os.path.join(self.data_path, "data.csv"))
             self.data = self.clean_df['file']
-            self.True_label=self.clean_df['true_label']
-            #self.train_label= self.clean_df['train_label']
+            self.True_label = self.clean_df['true_label']
         else:
             self.data = [fn for fn in os.listdir(self.data_path) if fn.endswith(example_img_format)]
-            self.True_label=[]
-            for fn in self.data:
-                lbl=int(fn.split('_')[1])
-                self.True_label.append(lbl)
+            self.True_label = [int(fn.split('_')[1]) for fn in self.data]
                 
-        self.num_class=5
+        self.num_class = num_class
         self.transform = transform
-    
+
     def __getitem__(self, index):
-        
-    
-        img=np.array(cv2.imread(os.path.join(self.data_path,self.data[index]),cv2.IMREAD_UNCHANGED)).astype(float)
-        
-        min=np.min(img)
-        
-        max=np.max(img)
-        
-        img=(img-min)/(max-min)
-        
-        x=torch.from_numpy(img).float()
-        
-        x=x.permute(2,0,1)
-        
+        img = np.array(cv2.imread(os.path.join(self.data_path, self.data[index]), cv2.IMREAD_UNCHANGED)).astype(float)
+        img_min = np.min(img)
+        img_max = np.max(img)
+        img = (img - img_min) / (img_max - img_min)
+        x = torch.from_numpy(img).float()
+        x = x.permute(2, 0, 1)
+
         if self.transform:
             x = self.transform(x)
-        
+
         return x, self.True_label[index]
-    
-    # def balanced_batch_trigger(self,smplpercls=40):
-    #     images=[]
-    #     labels=[]
-    #     #train_labels=[]
-    #     counter=np.zeros(self.num_class)
-    #     for i in range(len(self.data)):
-    #         lbl=self.True_label[i]
-    #         if counter[lbl]!=smplpercls:
-    #             img= np.array(cv2.imread(os.path.join(self.data_path,self.data[i]),cv2.IMREAD_UNCHANGED))                
-    #             images.append(img)
-    #             labels.append(lbl)
-    #             #train_labels.append(self.train_label[i])
-    #             counter[lbl]=counter[lbl]+1
-                
-            
-        
-    #     images=np.array(images).astype(float)
-        
-    #     images_min=np.amin(images,axis=(1,2,3),keepdims=True)
-    #     images_max=np.amax(images,axis=(1,2,3),keepdims=True)
-    #     images=(images-images_min)/(images_max-images_min)
-        
-    #     images=torch.from_numpy(images).float()
-        
-    #     images=images.permute(0,3,1,2)
-        
-    #     labels=torch.from_numpy(np.array(labels))
-        
-        
-    #     return images, labels
-
-        def balanced_batch_trigger(self, smplpercls=40):
-            images = []
-            labels = []
-
-            # Assuming self.data contains filenames and self.True_label contains corresponding labels
-            counter = np.zeros(self.num_class)
-            
-            for i in range(len(self.data)):
-                lbl = self.True_label[i]
-                if counter[lbl] < smplpercls:
-                    img_path = os.path.join(self.data_path, self.data[i])
-                    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
-                    
-                    if img is not None:
-                        images.append(img)
-                        labels.append(lbl)
-                        counter[lbl] += 1
-
-            # Ensure images is not empty and has the correct shape
-            if images:
-                images = np.array(images).astype(float)
-                # Check and print shapes for debugging
-                print("Images shape:", images.shape)  # Debugging line to check dimensions
-
-                # Normalization
-                if images.ndim == 4:  # Verify that images are in the expected format [batch_size, height, width, channels]
-                    images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
-                    images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
-                    images = (images - images_min) / (images_max - images_min)
-                    images = torch.from_numpy(images).float()
-                    images = images.permute(0, 3, 1, 2)  # Change dimension order to [batch, channels, height, width]
-                else:
-                    raise ValueError("Unexpected image dimensions:", images.ndim)
-
-                labels = torch.from_numpy(np.array(labels))
-
-                return images, labels
-            else:
-                # Handle case when no images were loaded successfully
-                raise Exception("No images were loaded. Check paths and image files.")
-
-    # def balanced_batch_trigger_perclass(self, smplpercls=40,batch_lbl=0):
-    #     images = []
-    #     labels = []
-    #     #train_labels = []
-    #     counter = 0
-    #     for i in range(len(self.data)):
-    #         lbl = self.True_label[i]
-    #         if counter != smplpercls and lbl == batch_lbl:
-    #             img = np.array(cv2.imread(os.path.join(self.data_path, self.data[i]), cv2.IMREAD_UNCHANGED))
-    #             images.append(img)
-    #             labels.append(lbl)
-    #             #train_labels.append(self.train_label[i])
-    #             counter+= 1
-
-    #     images = np.array(images).astype(float)
-    #     images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
-    #     images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
-    #     images = (images - images_min) / (images_max - images_min)
-
-    #     images = torch.from_numpy(images).float()
-
-    #     images = images.permute(0, 3, 1, 2)
-
-    #     labels = torch.from_numpy(np.array(labels))
-    #     #train_labels = torch.from_numpy(np.array(train_labels))
-
-    #     return images, labels
-        def balanced_batch_trigger_perclass(self, smplpercls=40, batch_lbl=0):
-            images = []
-            labels = []
-            counter = 0
-
-            for i in range(len(self.data)):
-                lbl = self.True_label[i]
-                if counter < smplpercls and lbl == batch_lbl:
-                    img_path = os.path.join(self.data_path, self.data[i])
-                    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
-                    if img is not None:
-                        img = np.array(img)
-                        images.append(img)
-                        labels.append(lbl)
-                        counter += 1
-
-            if images:
-                images = np.array(images).astype(float)
-                # Ensure the images have the expected 4-dimensional shape
-                if images.ndim == 4:
-                    images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
-                    images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
-                    images = (images - images_min) / (images_max - images_min)
-
-                    images = torch.from_numpy(images).float()
-                    images = images.permute(0, 3, 1, 2)  # Change dimension order to [batch, channels, height, width]
-
-                    labels = torch.from_numpy(np.array(labels))
-
-                    return images, labels
-                else:
-                    raise ValueError("Images have incorrect dimensions, expected 4 dimensions but got {}".format(images.ndim))
-            else:
-                raise ValueError("No images were loaded. Please check the image paths and label conditions.")
 
     def __len__(self):
         return len(self.data)
 
+    def balanced_batch_trigger(self, smplpercls=40):
+        images = []
+        labels = []
+        counter = np.zeros(self.num_class)
+
+        for i in range(len(self.data)):
+            lbl = self.True_label[i]
+            if counter[lbl] < smplpercls:
+                img_path = os.path.join(self.data_path, self.data[i])
+                img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+                if img is not None:
+                    img = np.array(img).astype(float)
+                    images.append(img)
+                    labels.append(lbl)
+                    counter[lbl] += 1
+
+        if images:
+            images = np.stack(images)
+            images_min = np.amin(images, axis=(1, 2, 3), keepdims=True)
+            images_max = np.amax(images, axis=(1, 2, 3), keepdims=True)
+            images = (images - images_min) / (images_max - images_min)
+            images = torch.from_numpy(images).float()
+            images = images.permute(0, 3, 1, 2)
+            labels = torch.from_numpy(np.array(labels)).long()
+            return images, labels
+        else:
+            raise ValueError("No images loaded. Please check your data and paths.")
 
 
 def Add_perturb_2_imges(images, perturb, trigger_window=8):
@@ -488,30 +547,41 @@ def load_model(model_path, device):
     model = model.to(device)
     return model
 
-def model_evaluator(model_path, data_path, fooling_rate, window, iterator, device, num_class, smplpercls, over_shoot, args):
-    # Data loader setup
-    dataloader = NIST_loader(data_path)  # Assuming NIST_loader is defined elsewhere
-    cdataloader = DataLoader(dataset=dataloader, batch_size=args.test_batch_size, shuffle=False)
+# def model_evaluator(model_path, data_path, fooling_rate, window, iterator, device, num_class, smplpercls, over_shoot, args):
+#     # Data loader setup
+#     dataloader = NIST_loader(data_path)  # Assuming NIST_loader is defined elsewhere
+#     cdataloader = DataLoader(dataset=dataloader, batch_size=args.test_batch_size, shuffle=False)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_model(model_path, device)
+#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#     model = load_model(model_path, device)
 
-    # model = load_model(model_path, device, num_class)
+#     # model = load_model(model_path, device, num_class)
 
-    # Generate test batch and labels
-    test_batch, lbl = dataloader.balanced_batch_trigger(smplpercls)
-    # test_batch, lbl = dataloader.balanced_batch_trigger_perclass(smplpercls)
+#     # Generate test batch and labels
+#     test_batch, lbl = dataloader.balanced_batch_trigger(smplpercls)
+#     # test_batch, lbl = dataloader.balanced_batch_trigger_perclass(smplpercls)
     
 
-    # Perform the attack and measure robustness
+#     # Perform the attack and measure robustness
+#     r = Bs_normal(test_batch, model, fooling_rate, window, num_class, over_shoot, max_iter=iterator)
+
+#     # Evaluate how the model performs with the perturbation
+#     acc_perturb = test_perturb(args, model, device, cdataloader, r, window)
+
+#     # Clean up resources
+#     del model
+
+#     return acc_perturb
+
+def model_evaluator(model_path, data_path, fooling_rate, window, iterator, device, num_class, smplpercls, over_shoot, args):
+    dataloader = NIST_loader(data_path)
+    cdataloader = DataLoader(dataset=dataloader, batch_size=args.test_batch_size, shuffle=False)
+    test_batch, lbl = dataloader.balanced_batch_trigger(smplpercls)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_model(model_path, device)
     r = Bs_normal(test_batch, model, fooling_rate, window, num_class, over_shoot, max_iter=iterator)
-
-    # Evaluate how the model performs with the perturbation
     acc_perturb = test_perturb(args, model, device, cdataloader, r, window)
-
-    # Clean up resources
     del model
-
     return acc_perturb
 
 
