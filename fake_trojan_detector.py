@@ -391,23 +391,23 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import models
 
-def initialize_model(num_classes=10):
+def initialize_model(num_classes=10):  # Default to 10, adjust based on your specific needs
     """
-    Initialize the model with the required output features based on the number of classes.
+    Initialize the ResNet model with the required output features based on the number of classes.
     """
-    model = models.resnet18(pretrained=False)  # Initialize a ResNet18 model
-    num_features = model.fc.in_features         # Get the number of input features for the last layer
-    model.fc = nn.Linear(num_features, num_classes)  # Replace the fully connected layer
+    model = models.resnet18(pretrained=False)
+    num_features = model.fc.in_features
+    model.fc = nn.Linear(num_features, num_classes)  # Modify this line to adjust to the correct number of classes
     return model
 
-def load_model(model_path, device, num_classes=10):
+def load_model(model_path, device, num_classes=10):  # Ensure num_classes matches the checkpoint
     """
     Load the model from the checkpoint.
     """
-    checkpoint = torch.load(model_path, map_location='cpu')  # Load the checkpoint
-    model = initialize_model(num_classes)  # Initialize the model structure
+    checkpoint = torch.load(model_path, map_location='cpu')
+    model = initialize_model(num_classes)  # Pass the correct number of classes here
     model.load_state_dict(checkpoint['model'])  # Load the state dictionary
-    model = model.to(device)  # Move model to the designated device
+    model = model.to(device)
     return model
 
 def model_evaluator(model_path, data_path, fooling_rate, window, iterator, device, num_class, smplpercls, over_shoot, args):
@@ -415,7 +415,6 @@ def model_evaluator(model_path, data_path, fooling_rate, window, iterator, devic
     dataloader = NIST_loader(data_path)  # Assuming NIST_loader is defined elsewhere
     cdataloader = DataLoader(dataset=dataloader, batch_size=args.test_batch_size, shuffle=False)
 
-    # Load and prepare the model
     model = load_model(model_path, device, num_class)
 
     # Generate test batch and labels
