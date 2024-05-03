@@ -410,7 +410,7 @@ def load_model(model_path, device, num_classes=10):  # Ensure num_classes matche
     model.load_state_dict(checkpoint['model'])  # Load the state dictionary
     model = model.to(device)
     
-    summary(model, input_size=(3, 224, 224))
+    print(summary(model, input_size=(3, 224, 224)))
 
     return model
 
